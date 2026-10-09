@@ -1,0 +1,31 @@
+-- Esquema de la base de datos: presupuesto_estudiantil
+-- Antes de ejecutar: CREATE DATABASE presupuesto_estudiantil;
+-- y conectarse a esa base.
+
+-- Cuentas de las personas
+CREATE TABLE usuarios (
+    id              SERIAL PRIMARY KEY,
+    nombre          VARCHAR(100) NOT NULL,
+    correo          VARCHAR(150) NOT NULL UNIQUE,
+    contrasena_hash VARCHAR(255) NOT NULL,
+    creado_en       TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Sesiones activas
+CREATE TABLE sesiones (
+    id          SERIAL PRIMARY KEY,
+    token       VARCHAR(255) NOT NULL UNIQUE,
+    usuario_id  INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    creado_en   TIMESTAMP NOT NULL DEFAULT NOW(),
+    expira_en   TIMESTAMP NOT NULL
+);
+
+-- Códigos de 6 dígitos para recuperar la contraseña
+CREATE TABLE recuperaciones (
+    id          SERIAL PRIMARY KEY,
+    usuario_id  INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    codigo      CHAR(6) NOT NULL,
+    creado_en   TIMESTAMP NOT NULL DEFAULT NOW(),
+    expira_en   TIMESTAMP NOT NULL,
+    usado       BOOLEAN NOT NULL DEFAULT FALSE
+);
