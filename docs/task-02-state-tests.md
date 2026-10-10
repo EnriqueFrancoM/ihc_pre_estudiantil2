@@ -55,6 +55,7 @@ flutter test
 2. El modelo es inmutable: la acción devuelve un objeto nuevo en vez de modificar el existente.
 3. La fecha se guarda como `DATE` y viaja como texto `YYYY-MM-DD`, para evitar desfases de zona horaria.
 4. La lista se vuelve a leer del servidor después de cada cambio, así lo que se ve es lo guardado.
+5. "Marcar como pagado" pide confirmación antes de ejecutarse, porque la transición no se puede deshacer.
 
 ## Limitaciones
 

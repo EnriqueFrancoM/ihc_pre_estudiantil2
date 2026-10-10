@@ -70,7 +70,45 @@ class _PantallaMovimientosState extends State<PantallaMovimientos> {
     if (creado == true) await _cargarMovimientos();
   }
 
+  // Pregunta antes de hacer una acción que no se puede deshacer
+  Future<bool> _confirmarPago() async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (contexto) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: const Text(
+          'Marcar como pagado',
+          style: TextStyle(color: Colores.azulOscuro),
+        ),
+        content: const Text(
+          '¿Deseas marcar este movimiento como pagado? Esta acción no se puede deshacer.',
+          style: TextStyle(color: Colores.grisAzulado, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(contexto, false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colores.verdeOscuro),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(contexto, true),
+            style: FilledButton.styleFrom(backgroundColor: Colores.verdeOscuro),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+    // Si cierran el diálogo tocando fuera, el resultado es null: se trata como cancelar
+    return confirmado ?? false;
+  }
+
   Future<void> _marcarComoPagado(Movimiento movimiento) async {
+    if (!await _confirmarPago()) return; // si cancela, no pasa nada
+    if (!mounted) return;
     try {
       await ServicioMovimientos.marcarComoPagado(movimiento);
       if (!mounted) return;
