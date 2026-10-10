@@ -7,3 +7,8 @@ class Colores {
   static const Color grisAzulado = Color(0xFF6B7494);
   static const Color fondo = Color(0xFFF7F9F9);
 }
+
+class Servidor {
+  // 10.0.2.2 = el localhost de tu PC visto desde el emulador de Android
+  static const String urlBase = 'http://10.0.2.2:3000';
+}
