@@ -5,6 +5,7 @@ import '../modelos/movimiento.dart';
 import '../servicios/servicio_acceso.dart';
 import '../servicios/servicio_movimientos.dart';
 import '../widgets/mensajes.dart';
+import 'pantalla_nuevo_movimiento.dart';
 
 class PantallaMovimientos extends StatefulWidget {
   const PantallaMovimientos({super.key});
@@ -70,34 +71,46 @@ class _PantallaMovimientosState extends State<PantallaMovimientos> {
     if (creado == true) await _cargarMovimientos();
   }
 
-  // Pregunta antes de hacer una acción que no se puede deshacer
-  Future<bool> _confirmarPago() async {
+  // Editar: abre el mismo formulario con los datos del movimiento
+  Future<void> _editar(Movimiento movimiento) async {
+    final cambiado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PantallaNuevoMovimiento(movimiento: movimiento),
+      ),
+    );
+    if (cambiado == true) await _cargarMovimientos();
+  }
+
+  // Ventana de confirmación reutilizable
+  Future<bool> _pedirConfirmacion({
+    required String titulo,
+    required String mensaje,
+    required String textoConfirmar,
+    bool esPeligro = false,
+  }) async {
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (contexto) => AlertDialog(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text(
-          'Marcar como pagado',
-          style: TextStyle(color: Colores.azulOscuro),
-        ),
-        content: const Text(
-          '¿Deseas marcar este movimiento como pagado? Esta acción no se puede deshacer.',
-          style: TextStyle(color: Colores.grisAzulado, height: 1.4),
+        title: Text(titulo, style: const TextStyle(color: Colores.azulOscuro)),
+        content: Text(
+          mensaje,
+          style: const TextStyle(color: Colores.grisAzulado, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(contexto, false),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: Colores.verdeOscuro),
-            ),
+            child: const Text('Cancelar', style: TextStyle(color: Colores.verdeOscuro)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(contexto, true),
-            style: FilledButton.styleFrom(backgroundColor: Colores.verdeOscuro),
-            child: const Text('Confirmar'),
+            style: FilledButton.styleFrom(
+              backgroundColor: esPeligro ? Colors.red.shade700 : Colores.verdeOscuro,
+            ),
+            child: Text(textoConfirmar),
           ),
         ],
       ),
@@ -107,8 +120,13 @@ class _PantallaMovimientosState extends State<PantallaMovimientos> {
   }
 
   Future<void> _marcarComoPagado(Movimiento movimiento) async {
-    if (!await _confirmarPago()) return; // si cancela, no pasa nada
-    if (!mounted) return;
+    final confirmado = await _pedirConfirmacion(
+      titulo: 'Marcar como pagado',
+      mensaje: '¿Deseas marcar este movimiento como pagado? Esta acción no se puede deshacer.',
+      textoConfirmar: 'Confirmar',
+    );
+    if (!confirmado || !mounted) return;
+
     try {
       await ServicioMovimientos.marcarComoPagado(movimiento);
       if (!mounted) return;
@@ -123,6 +141,29 @@ class _PantallaMovimientosState extends State<PantallaMovimientos> {
     } on StateError catch (e) {
       if (!mounted) return;
       mostrarMensaje(context, e.message, esError: true);
+    }
+  }
+
+  Future<void> _eliminar(Movimiento movimiento) async {
+    final confirmado = await _pedirConfirmacion(
+      titulo: 'Eliminar movimiento',
+      mensaje: '¿Deseas eliminar "${movimiento.concepto}"? Esta acción no se puede deshacer.',
+      textoConfirmar: 'Eliminar',
+      esPeligro: true,
+    );
+    if (!confirmado || !mounted) return;
+
+    try {
+      await ServicioMovimientos.eliminar(movimiento);
+      if (!mounted) return;
+      mostrarMensaje(context, 'Movimiento eliminado');
+      await _cargarMovimientos();
+    } on SesionExpirada {
+      if (!mounted) return;
+      _volverAlLogin();
+    } on ErrorAcceso catch (e) {
+      if (!mounted) return;
+      mostrarMensaje(context, e.mensaje, esError: true);
     }
   }
 
@@ -260,17 +301,27 @@ class _PantallaMovimientosState extends State<PantallaMovimientos> {
                 ),
               ),
               const Spacer(),
-              // La acción solo existe mientras esté pendiente
-              if (!pagado)
-                TextButton(
-                  onPressed: () => _marcarComoPagado(m),
-                  child: const Text(
-                    'Marcar como pagado',
-                    style: TextStyle(color: Colores.verdeOscuro),
-                  ),
-                ),
+              IconButton(
+                tooltip: 'Editar',
+                icon: const Icon(Icons.edit_outlined, color: Colores.verdeOscuro),
+                onPressed: () => _editar(m),
+              ),
+              IconButton(
+                tooltip: 'Eliminar',
+                icon: Icon(Icons.delete_outline, color: Colors.red.shade700),
+                onPressed: () => _eliminar(m),
+              ),
             ],
           ),
+          // La acción de pagar solo existe mientras esté pendiente
+          if (!pagado)
+            TextButton(
+              onPressed: () => _marcarComoPagado(m),
+              child: const Text(
+                'Marcar como pagado',
+                style: TextStyle(color: Colores.verdeOscuro),
+              ),
+            ),
         ],
       ),
     );

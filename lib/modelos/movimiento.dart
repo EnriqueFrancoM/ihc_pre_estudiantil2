@@ -43,6 +43,31 @@ class Movimiento {
     );
   }
 
+  static const String motivoMontoBloqueado =
+      'Un movimiento pagado no permite modificar su monto.';
+
+  // Restricción por estado: pagado => el monto no se puede modificar
+  bool get montoBloqueado => estado == EstadoMovimiento.pagado;
+
+  // Devuelve un movimiento con los datos nuevos. Rechaza cambiar el monto si está pagado.
+  Movimiento editar({
+    required String concepto,
+    required double monto,
+    required DateTime fecha,
+  }) {
+    final cambiaMonto = (monto - this.monto).abs() >= 0.005;
+    if (montoBloqueado && cambiaMonto) {
+      throw StateError(motivoMontoBloqueado);
+    }
+    return Movimiento(
+      id: id,
+      concepto: concepto,
+      monto: montoBloqueado ? this.monto : monto,
+      fecha: fecha,
+      estado: estado,
+    );
+  }
+
   String get montoTexto => 'Bs ${monto.toStringAsFixed(2)}';
   String get fechaTexto => formatearFecha(fecha);
 

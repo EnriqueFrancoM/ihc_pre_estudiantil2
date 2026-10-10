@@ -59,4 +59,25 @@ class ServicioMovimientos {
     final dia = f.day.toString().padLeft(2, '0');
     return '${f.year.toString().padLeft(4, '0')}-$mes-$dia';
   }
+
+  // Editar: primero la regla del modelo, luego se guarda en el servidor
+  static Future<Movimiento> editar(
+      Movimiento original,
+      String concepto,
+      double monto,
+      DateTime fecha,
+      ) async {
+    original.editar(concepto: concepto, monto: monto, fecha: fecha);
+    final datos = await _pedir('PUT', '/movimientos/${original.id}', datos: {
+      'concepto': concepto,
+      'monto': monto,
+      'fecha': _fechaParaServidor(fecha),
+    });
+    return Movimiento.desdeJson(datos['movimiento']);
+  }
+
+  static Future<void> eliminar(Movimiento movimiento) async {
+    await _pedir('DELETE', '/movimientos/${movimiento.id}');
+  }
+
 }

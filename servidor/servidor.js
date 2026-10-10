@@ -207,6 +207,69 @@ app.post('/movimientos/:id/pagar', exigirSesion, async (req, res) => {
   res.json({ movimiento: resultado.rows[0] });
 });
 
+// Editar: si está pagado, el monto no puede cambiar
+app.put('/movimientos/:id', exigirSesion, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Movimiento inválido' });
+  }
+
+  const concepto = String(req.body.concepto || '').trim();
+  const monto = Math.round(Number(req.body.monto) * 100) / 100;
+  const fecha = String(req.body.fecha || '');
+
+  if (!concepto || !fecha) {
+    return res.status(400).json({ error: 'Completa todos los campos' });
+  }
+  if (!(monto > 0 && monto < 1e10)) {
+    return res.status(400).json({ error: 'El monto debe ser mayor a 0' });
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return res.status(400).json({ error: 'Fecha inválida' });
+  }
+
+  // La restricción vive en el WHERE: si está pagado, el monto debe ser el mismo
+  const resultado = await pool.query(
+    `UPDATE movimientos SET concepto = $3, monto = $4, fecha = $5
+     WHERE id = $1 AND usuario_id = $2
+       AND (estado = 'pendiente' OR monto = $4)
+     RETURNING ${COLUMNAS_MOVIMIENTO}`,
+    [id, req.usuario.id, concepto, monto, fecha]
+  );
+
+  if (resultado.rows.length === 0) {
+    const existe = await pool.query(
+      'SELECT 1 FROM movimientos WHERE id = $1 AND usuario_id = $2',
+      [id, req.usuario.id]
+    );
+    if (existe.rows.length === 0) {
+      return res.status(404).json({ error: 'Movimiento no encontrado' });
+    }
+    return res.status(409).json({
+      error: 'Un movimiento pagado no permite modificar su monto.',
+    });
+  }
+
+  res.json({ movimiento: resultado.rows[0] });
+});
+
+// Eliminar
+app.delete('/movimientos/:id', exigirSesion, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Movimiento inválido' });
+  }
+
+  const resultado = await pool.query(
+    'DELETE FROM movimientos WHERE id = $1 AND usuario_id = $2 RETURNING id',
+    [id, req.usuario.id]
+  );
+  if (resultado.rows.length === 0) {
+    return res.status(404).json({ error: 'Movimiento no encontrado' });
+  }
+  res.json({ mensaje: 'Movimiento eliminado' });
+});
+
 // ---------- Manejo de errores ----------
 app.use((err, req, res, next) => {
   console.error(err);

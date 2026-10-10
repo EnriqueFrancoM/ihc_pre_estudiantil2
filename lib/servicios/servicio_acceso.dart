@@ -27,10 +27,16 @@ class ServicioAcceso {
     };
 
     try {
-      if (metodo == 'GET') {
-        return await http.get(url, headers: cabeceras);
+      switch (metodo) {
+        case 'GET':
+          return await http.get(url, headers: cabeceras);
+        case 'PUT':
+          return await http.put(url, headers: cabeceras, body: jsonEncode(datos ?? {}));
+        case 'DELETE':
+          return await http.delete(url, headers: cabeceras);
+        default:
+          return await http.post(url, headers: cabeceras, body: jsonEncode(datos ?? {}));
       }
-      return await http.post(url, headers: cabeceras, body: jsonEncode(datos ?? {}));
     } on SocketException {
       throw ErrorAcceso('No se pudo conectar con el servidor');
     }
