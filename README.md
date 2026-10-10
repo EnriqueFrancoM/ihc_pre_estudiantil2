@@ -72,6 +72,18 @@ La app se conecta a `http://10.0.2.2:3000` (en el emulador, `10.0.2.2` es el `lo
 
 No se envía correo real. Al pedir el código, la app lo muestra en pantalla (6 dígitos, válido 15 minutos).
 
+## Pruebas unitarias
+
+Desde la raíz del proyecto:
+
+```powershell
+flutter test
+```
+
+Las pruebas están en `test/movimiento_test.dart` y verifican el estado inicial, la transición `pendiente → pagado`, el rechazo de una transición inválida y que los demás datos se conserven.
+
+> Si ya tenías la base creada, ejecuta también la tabla `movimientos` de `base_datos/esquema.sql`.
+
 ## Documentación
 
 Decisiones y archivos principales: [`docs/task-01-access.md`](docs/task-01-access.md)
