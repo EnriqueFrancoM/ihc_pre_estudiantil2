@@ -29,3 +29,14 @@ CREATE TABLE recuperaciones (
     expira_en   TIMESTAMP NOT NULL,
     usado       BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+CREATE TABLE movimientos (
+    id          SERIAL PRIMARY KEY,
+    usuario_id  INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    concepto    VARCHAR(150) NOT NULL,
+    monto       NUMERIC(12,2) NOT NULL CHECK (monto > 0),
+    fecha       DATE NOT NULL,
+    estado      VARCHAR(10) NOT NULL DEFAULT 'pendiente'
+                CHECK (estado IN ('pendiente', 'pagado')),
+    creado_en   TIMESTAMP NOT NULL DEFAULT NOW()
+);

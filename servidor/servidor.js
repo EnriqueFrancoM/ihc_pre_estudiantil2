@@ -140,6 +140,73 @@ app.post('/cambiar-contrasena', async (req, res) => {
   res.json({ mensaje: 'Contraseña actualizada' });
 });
 
+// ---------- Movimientos ----------
+// fecha como texto y monto como número, para evitar problemas de zona horaria
+const COLUMNAS_MOVIMIENTO = `id, concepto, monto::float8 AS monto,
+  to_char(fecha, 'YYYY-MM-DD') AS fecha, estado`;
+
+// Listar los movimientos de la persona con sesión
+app.get('/movimientos', exigirSesion, async (req, res) => {
+  const resultado = await pool.query(
+    `SELECT ${COLUMNAS_MOVIMIENTO} FROM movimientos
+     WHERE usuario_id = $1 ORDER BY fecha DESC, id DESC`,
+    [req.usuario.id]
+  );
+  res.json({ movimientos: resultado.rows });
+});
+
+// Crear un movimiento (siempre nace "pendiente")
+app.post('/movimientos', exigirSesion, async (req, res) => {
+  const concepto = String(req.body.concepto || '').trim();
+  const monto = Number(req.body.monto);
+  const fecha = String(req.body.fecha || '');
+
+  if (!concepto || !fecha) {
+    return res.status(400).json({ error: 'Completa todos los campos' });
+  }
+  if (!(monto > 0 && monto < 1e10)) {
+    return res.status(400).json({ error: 'El monto debe ser mayor a 0' });
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return res.status(400).json({ error: 'Fecha inválida' });
+  }
+
+  const resultado = await pool.query(
+    `INSERT INTO movimientos (usuario_id, concepto, monto, fecha)
+     VALUES ($1, $2, $3, $4) RETURNING ${COLUMNAS_MOVIMIENTO}`,
+    [req.usuario.id, concepto, monto, fecha]
+  );
+  res.status(201).json({ movimiento: resultado.rows[0] });
+});
+
+// Marcar como pagado: solo si está pendiente
+app.post('/movimientos/:id/pagar', exigirSesion, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Movimiento inválido' });
+  }
+
+  const resultado = await pool.query(
+    `UPDATE movimientos SET estado = 'pagado'
+     WHERE id = $1 AND usuario_id = $2 AND estado = 'pendiente'
+     RETURNING ${COLUMNAS_MOVIMIENTO}`,
+    [id, req.usuario.id]
+  );
+
+  if (resultado.rows.length === 0) {
+    const existe = await pool.query(
+      'SELECT 1 FROM movimientos WHERE id = $1 AND usuario_id = $2',
+      [id, req.usuario.id]
+    );
+    if (existe.rows.length === 0) {
+      return res.status(404).json({ error: 'Movimiento no encontrado' });
+    }
+    return res.status(409).json({ error: 'El movimiento ya está pagado' });
+  }
+
+  res.json({ movimiento: resultado.rows[0] });
+});
+
 // ---------- Manejo de errores ----------
 app.use((err, req, res, next) => {
   console.error(err);
