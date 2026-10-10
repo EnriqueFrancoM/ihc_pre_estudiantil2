@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../configuracion/constantes.dart';
 import '../widgets/fondo_decorativo.dart';
 import '../widgets/boton_pildora.dart';
+import '../configuracion/rutas.dart';
 
 class PantallaInicio extends StatelessWidget {
   const PantallaInicio({super.key});
@@ -48,21 +49,17 @@ class PantallaInicio extends StatelessWidget {
                   BotonPildora(
                     texto: 'Iniciar sesión',
                     icono: Icons.person_outline,
-                    alPresionar: () {
-                      // TODO: ir a la pantalla de login
-                    },
+                    alPresionar: () => Navigator.pushNamed(context, Rutas.login),
                   ),
                   const SizedBox(height: 16),
                   BotonPildora(
                     texto: 'Registrarse',
                     icono: Icons.person_add_alt_outlined,
                     esRelleno: false,
-                    alPresionar: () {
-                      // TODO: ir a la pantalla de registro
-                    },
+                    alPresionar: () => Navigator.pushNamed(context, Rutas.registro),
                   ),
                   const Spacer(flex: 2),
-                  _enlaceOlvidaste(),
+                  _enlaceOlvidaste(context),
                   const Spacer(flex: 2),
                 ],
               ),
@@ -91,11 +88,9 @@ class PantallaInicio extends StatelessWidget {
     );
   }
 
-  Widget _enlaceOlvidaste() {
+  Widget _enlaceOlvidaste(BuildContext context) {
     return TextButton.icon(
-      onPressed: () {
-        // TODO: ir a recuperar contraseña
-      },
+      onPressed: () => Navigator.pushNamed(context, Rutas.recuperar),
       icon: const Icon(Icons.lock_outline, color: Colores.verdeOscuro),
       label: const Text(
         '¿Olvidaste tu contraseña?',

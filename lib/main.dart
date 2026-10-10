@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'configuracion/rutas.dart';
 import 'configuracion/tema.dart';
-import 'pantallas/pantalla_inicio.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,10 +12,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'IHC Estudiantil',
+      title: 'UniBudget',
       debugShowCheckedModeBanner: false,
       theme: TemaApp.temaClaro,
-      home: const PantallaInicio(),
+      initialRoute: Rutas.arranque,
+      routes: Rutas.mapa,
     );
   }
 }
