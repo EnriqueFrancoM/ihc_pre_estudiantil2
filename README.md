@@ -80,9 +80,10 @@ Desde la raíz del proyecto:
 flutter test
 ```
 
-Las pruebas están en `test/movimiento_test.dart` y verifican el estado inicial, la transición `pendiente → pagado`, el rechazo de una transición inválida y que los demás datos se conserven.
+Las pruebas están en `test/`:
 
-> Si ya tenías la base creada, ejecuta también la tabla `movimientos` de `base_datos/esquema.sql`.
+- `movimiento_test.dart`: estado inicial, transición `pendiente → pagado`, rechazo de transición inválida y conservación de datos.
+- `restriccion_monto_test.dart`: un movimiento pagado no permite modificar su monto.
 
 ## Documentación
 
