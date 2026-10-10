@@ -14,7 +14,7 @@ class ServicioAcceso {
   static const _claveToken = 'token';
 
   // ---------- Petición genérica al servidor ----------
-  static Future<http.Response> _llamar(
+  static Future<http.Response> llamar(
       String metodo,
       String ruta, {
         Map<String, dynamic>? datos,
@@ -37,7 +37,7 @@ class ServicioAcceso {
   }
 
   // Si el servidor respondió con error, lanza su mensaje
-  static Map<String, dynamic> _leer(http.Response respuesta) {
+  static Map<String, dynamic> leer(http.Response respuesta) {
     final cuerpo = jsonDecode(respuesta.body) as Map<String, dynamic>;
     if (respuesta.statusCode >= 400) {
       throw ErrorAcceso(cuerpo['error'] ?? 'Error desconocido');
@@ -47,21 +47,21 @@ class ServicioAcceso {
 
   // ---------- Registro ----------
   static Future<void> registrar(String nombre, String correo, String contrasena) async {
-    final respuesta = await _llamar('POST', '/registro', datos: {
+    final respuesta = await llamar('POST', '/registro', datos: {
       'nombre': nombre,
       'correo': correo,
       'contrasena': contrasena,
     });
-    _leer(respuesta);
+    leer(respuesta);
   }
 
   // ---------- Inicio de sesión: guarda el token en el celular ----------
   static Future<void> iniciarSesion(String correo, String contrasena) async {
-    final respuesta = await _llamar('POST', '/login', datos: {
+    final respuesta = await llamar('POST', '/login', datos: {
       'correo': correo,
       'contrasena': contrasena,
     });
-    final datos = _leer(respuesta);
+    final datos = leer(respuesta);
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_claveToken, datos['token']);
@@ -73,14 +73,14 @@ class ServicioAcceso {
     final token = prefs.getString(_claveToken);
     if (token == null) return null;
 
-    final respuesta = await _llamar('GET', '/perfil', token: token);
+    final respuesta = await llamar('GET', '/perfil', token: token);
 
     // El servidor dice que el token ya no vale: limpiamos y no hay sesión
     if (respuesta.statusCode == 401) {
       await prefs.remove(_claveToken);
       return null;
     }
-    return _leer(respuesta)['nombre'];
+    return leer(respuesta)['nombre'];
   }
 
   // ---------- Cierre de sesión ----------
@@ -89,7 +89,7 @@ class ServicioAcceso {
     final token = prefs.getString(_claveToken);
 
     try {
-      if (token != null) await _llamar('POST', '/logout', token: token);
+      if (token != null) await llamar('POST', '/logout', token: token);
     } on ErrorAcceso {
       // Sin conexión: igual cerramos la sesión en el celular
     }
@@ -99,16 +99,22 @@ class ServicioAcceso {
   // ---------- Recuperación de contraseña ----------
   // Devuelve el código de 6 dígitos (no se envía correo real)
   static Future<String> pedirCodigo(String correo) async {
-    final respuesta = await _llamar('POST', '/recuperar', datos: {'correo': correo});
-    return _leer(respuesta)['codigo'];
+    final respuesta = await llamar('POST', '/recuperar', datos: {'correo': correo});
+    return leer(respuesta)['codigo'];
   }
 
   static Future<void> cambiarContrasena(String correo, String codigo, String nueva) async {
-    final respuesta = await _llamar('POST', '/cambiar-contrasena', datos: {
+    final respuesta = await llamar('POST', '/cambiar-contrasena', datos: {
       'correo': correo,
       'codigo': codigo,
       'nuevaContrasena': nueva,
     });
-    _leer(respuesta);
+    leer(respuesta);
+  }
+
+  // Token guardado en el celular (null si no hay sesión)
+  static Future<String?> obtenerToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_claveToken);
   }
 }

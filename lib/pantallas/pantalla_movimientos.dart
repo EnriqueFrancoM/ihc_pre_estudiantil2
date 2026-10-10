@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../configuracion/constantes.dart';
 import '../configuracion/rutas.dart';
+import '../modelos/movimiento.dart';
 import '../servicios/servicio_acceso.dart';
+import '../servicios/servicio_movimientos.dart';
+import '../widgets/mensajes.dart';
 
 class PantallaMovimientos extends StatefulWidget {
   const PantallaMovimientos({super.key});
@@ -12,6 +15,8 @@ class PantallaMovimientos extends StatefulWidget {
 
 class _PantallaMovimientosState extends State<PantallaMovimientos> {
   String? _nombre;
+  List<Movimiento> _movimientos = [];
+  bool _cargandoLista = true;
 
   @override
   void initState() {
@@ -34,6 +39,53 @@ class _PantallaMovimientosState extends State<PantallaMovimientos> {
       return;
     }
     setState(() => _nombre = nombre);
+    await _cargarMovimientos();
+  }
+
+  void _volverAlLogin() {
+    Navigator.pushNamedAndRemoveUntil(context, Rutas.login, (ruta) => false);
+  }
+
+  // Recuperar: lee lo guardado y actualiza la lista
+  Future<void> _cargarMovimientos() async {
+    try {
+      final lista = await ServicioMovimientos.listar();
+      if (!mounted) return;
+      setState(() {
+        _movimientos = lista;
+        _cargandoLista = false;
+      });
+    } on SesionExpirada {
+      if (!mounted) return;
+      _volverAlLogin();
+    } on ErrorAcceso catch (e) {
+      if (!mounted) return;
+      setState(() => _cargandoLista = false);
+      mostrarMensaje(context, e.mensaje, esError: true);
+    }
+  }
+
+  Future<void> _abrirFormulario() async {
+    final creado = await Navigator.pushNamed(context, Rutas.nuevoMovimiento);
+    if (creado == true) await _cargarMovimientos();
+  }
+
+  Future<void> _marcarComoPagado(Movimiento movimiento) async {
+    try {
+      await ServicioMovimientos.marcarComoPagado(movimiento);
+      if (!mounted) return;
+      mostrarMensaje(context, 'Marcado como pagado');
+      await _cargarMovimientos();
+    } on SesionExpirada {
+      if (!mounted) return;
+      _volverAlLogin();
+    } on ErrorAcceso catch (e) {
+      if (!mounted) return;
+      mostrarMensaje(context, e.mensaje, esError: true);
+    } on StateError catch (e) {
+      if (!mounted) return;
+      mostrarMensaje(context, e.message, esError: true);
+    }
   }
 
   Future<void> _cerrarSesion() async {
@@ -64,8 +116,15 @@ class _PantallaMovimientosState extends State<PantallaMovimientos> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _abrirFormulario,
+        backgroundColor: Colores.verdeOscuro,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Nuevo movimiento'),
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -77,13 +136,104 @@ class _PantallaMovimientosState extends State<PantallaMovimientos> {
                 color: Colores.azulOscuro,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Aquí aparecerán tus ingresos y gastos.',
-              style: TextStyle(fontSize: 16, color: Colores.grisAzulado),
-            ),
+            const SizedBox(height: 16),
+            Expanded(child: _lista()),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _lista() {
+    if (_cargandoLista) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colores.verdeOscuro),
+      );
+    }
+    if (_movimientos.isEmpty) {
+      return const Center(
+        child: Text(
+          'Aún no tienes movimientos.\nCrea el primero con el botón de abajo.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16, color: Colores.grisAzulado, height: 1.5),
+        ),
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.only(bottom: 96),
+      itemCount: _movimientos.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, i) => _tarjeta(_movimientos[i]),
+    );
+  }
+
+  Widget _tarjeta(Movimiento m) {
+    final pagado = m.estado == EstadoMovimiento.pagado;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colores.verdeClaro),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  m.concepto,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colores.azulOscuro,
+                  ),
+                ),
+              ),
+              Text(
+                m.montoTexto,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colores.verdeOscuro,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(m.fechaTexto, style: const TextStyle(color: Colores.grisAzulado)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: pagado ? Colores.verdeClaro : const Color(0xFFFFE9C7),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  pagado ? 'Pagado' : 'Pendiente',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: pagado ? Colores.verdeOscuro : const Color(0xFF8A5A00),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              // La acción solo existe mientras esté pendiente
+              if (!pagado)
+                TextButton(
+                  onPressed: () => _marcarComoPagado(m),
+                  child: const Text(
+                    'Marcar como pagado',
+                    style: TextStyle(color: Colores.verdeOscuro),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

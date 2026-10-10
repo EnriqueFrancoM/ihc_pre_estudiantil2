@@ -7,6 +7,8 @@ class CampoTexto extends StatefulWidget {
   final IconData icono;
   final bool esContrasena;
   final bool habilitado;
+  final bool soloLectura;
+  final VoidCallback? alTocar;
   final TextInputType tipoTeclado;
 
   const CampoTexto({
@@ -16,6 +18,8 @@ class CampoTexto extends StatefulWidget {
     required this.icono,
     this.esContrasena = false,
     this.habilitado = true,
+    this.soloLectura = false,
+    this.alTocar,
     this.tipoTeclado = TextInputType.text,
   });
 
@@ -38,6 +42,8 @@ class _CampoTextoState extends State<CampoTexto> {
     return TextField(
       controller: widget.controlador,
       enabled: widget.habilitado,
+      readOnly: widget.soloLectura,
+      onTap: widget.alTocar,
       keyboardType: widget.tipoTeclado,
       obscureText: widget.esContrasena && _oculto,
       decoration: InputDecoration(

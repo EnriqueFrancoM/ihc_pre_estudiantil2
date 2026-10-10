@@ -3,6 +3,7 @@ import '../pantallas/pantalla_arranque.dart';
 import '../pantallas/pantalla_inicio.dart';
 import '../pantallas/pantalla_login.dart';
 import '../pantallas/pantalla_movimientos.dart';
+import '../pantallas/pantalla_nuevo_movimiento.dart';
 import '../pantallas/pantalla_recuperar.dart';
 import '../pantallas/pantalla_registro.dart';
 
@@ -13,6 +14,7 @@ class Rutas {
   static const String registro = '/registro';
   static const String recuperar = '/recuperar';
   static const String movimientos = '/movimientos';
+  static const String nuevoMovimiento = '/nuevo-movimiento';
 
   static final Map<String, WidgetBuilder> mapa = {
     arranque: (context) => const PantallaArranque(),
@@ -21,5 +23,6 @@ class Rutas {
     registro: (context) => const PantallaRegistro(),
     recuperar: (context) => const PantallaRecuperar(),
     movimientos: (context) => const PantallaMovimientos(),
+    nuevoMovimiento: (context) => const PantallaNuevoMovimiento(),
   };
 }
